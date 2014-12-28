@@ -32,6 +32,19 @@ class TestTreeset extends FunSuite {
     assert(tree.insert(3) === tree)
   }
 
+  test("insert existing value into large set") {
+    val tree = Tree(10, Tree(3, Empty, Tree(8, Tree(4, Empty, Tree(6, Empty, Empty)), Empty)), Tree(20, Empty, Empty))
+    assert(tree.insert(6) === tree)
+    assert(tree.insert(8) === tree)
+    assert(tree.insert(20) === tree)
+  }
+
+  test("insert new value into large set") {
+    val tree = Tree(10, Tree(3, Empty, Tree(8, Tree(4, Empty, Tree(6, Empty, Empty)), Empty)), Tree(20, Empty, Empty))
+    val newTree = Tree(10, Tree(3, Empty, Tree(8, Tree(4, Empty, Tree(6, Tree(5, Empty, Empty), Empty)), Empty)), Tree(20, Empty, Empty))
+    assert(tree.insert(5) === newTree)
+  }
+
   test("member for empty set") {
     assert(Empty.member(9) === false)
   }
