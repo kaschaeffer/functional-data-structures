@@ -13,7 +13,7 @@ sealed trait Treeset[+T] extends Set[T] {
     case _      => false
   }
 
-  override def insert[S >: T](elem: S)(implicit cmp: S => Ordered[S]): Set[S] = this match {
+  override def insert[S >: T](elem: S)(implicit cmp: S => Ordered[S]): Treeset[S] = this match {
     case Empty => Tree(elem, Empty, Empty)
     case Tree(e, left, right) =>
       if (elem == e) this
@@ -21,14 +21,19 @@ sealed trait Treeset[+T] extends Set[T] {
       else Tree(e, left.insert(elem), right)
   }
 
-  override def member[S >: T](elem: S)(implicit cmp: S => Ordered[S]): Boolean = this match {
-    case Empty => false
+  override def member[S >: T](elem: S)(implicit cmp: S => Ordered[S]): Boolean =
+    fastMember(elem, None)
+
+  def fastMember[S >: T](elem: S, candidateElem: Option[S])(implicit cmp: S => Ordered[S]): Boolean = this match {
+    case Empty => candidateElem match {
+      case None => false
+      case Some(candidate) => elem == candidate
+    }
     case Tree(e, left, right) =>
-      if (elem == e) true
-      else if (elem > e) right.member(elem)
-      else left.member(elem)
+      if (elem > e) right.fastMember(elem, candidateElem)
+      else left.fastMember(elem, Some(e))
   }
 }
 
 case object Empty extends Treeset[Nothing]
-case class Tree[T](elem: T, left: Set[T], right: Set[T]) extends Treeset[T]
+case class Tree[T](elem: T, left: Treeset[T], right: Treeset[T]) extends Treeset[T]

@@ -46,6 +46,17 @@ class TestTreeset extends FunSuite {
     assert(tree.member(25) === true)
   }
 
+  test("member in deep tree") {
+    val tree = Tree(10, Tree(3, Empty, Tree(8, Tree(4, Empty, Tree(6, Empty, Empty)), Empty)), Empty)
+    assert(tree.member(8) === true)
+    assert(tree.member(6) === true)
+    assert(tree.member(4) === true)
+    assert(tree.member(5) === false)
+    assert(tree.member(3) === true)
+    assert(tree.member(10) === true)
+    assert(tree.member(2) === false)
+  }
+
   test("member when element is not a member") {
     val tree = Tree(10, Tree(3, Empty, Empty), Tree(25, Empty, Empty))
     assert(tree.member(29) === false)
