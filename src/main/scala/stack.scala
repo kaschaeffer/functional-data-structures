@@ -2,38 +2,45 @@ package fds
 /**
  * Created by schaeffer on 12/27/14.
  */
-object Stack {
+sealed trait Stack[+T] {
+  def isEmpty: Boolean
+  def head: Option[T]
+  def tail: Option[Stack[T]]
+  def cons[S >: T](elem: S): Stack[S]
+  def append[S >: T](other: Stack[S]): Stack[S]
+  def suffixes: Stack[Stack[T]]
+}
 
-  sealed abstract class Stack[+T]
-  case object Nil extends Stack[Nothing]
-  case class Cons[T](elem: T, rest: Stack[T]) extends Stack[T]
-
-  def isEmpty[T](stack: Stack[T]): Boolean = stack match {
+sealed trait CustomStack[+T] extends Stack[T] {
+  override def isEmpty: Boolean = this match {
     case Nil => true
     case _ => false
   }
 
-  def head[T](stack: Stack[T]): Option[T] = stack match {
+  override def head: Option[T] = this match {
     case Nil => None
     case Cons(elem, _) => Some(elem)
   }
 
-  def tail[T](stack: Stack[T]): Option[Stack[T]] = stack match {
+  override def tail: Option[Stack[T]] = this match {
     case Nil => None
     case Cons(_, rest) => Some(rest)
   }
 
-  def cons[T](stack: Stack[T], elem: T): Stack[T] = Cons(elem, stack)
+  override def cons[S >: T](elem: S): Stack[S] = Cons(elem, this)
 
-  def append[T](stack: Stack[T], other: Stack[T]): Stack[T] = stack match {
+  override def append[S >: T](other: Stack[S]): Stack[S] = this match {
     case Nil => other
     case Cons(elem, Nil) => Cons(elem, other)
-    case Cons(elem, rest) => Cons(elem, append(rest, other))
+    case Cons(elem, rest) => Cons(elem, rest.append(other))
   }
 
-  def suffixes[T](stack: Stack[T]): Stack[Stack[T]] = stack match {
+  override def suffixes: Stack[Stack[T]] = this match {
     case Nil => Nil
-    case Cons(elem, Nil) => Cons(stack, Nil)
-    case Cons(elem, rest) => Cons(stack, suffixes(rest))
+    case Cons(elem, Nil) => Cons(this, Nil)
+    case Cons(elem, rest) => Cons(this, rest.suffixes)
   }
 }
+
+case object Nil extends CustomStack[Nothing]
+case class Cons[+T](elem: T, rest: Stack[T]) extends CustomStack[T]
