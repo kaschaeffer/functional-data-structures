@@ -1,6 +1,11 @@
 import org.junit.runner.RunWith
+import org.scalacheck.{Gen, Arbitrary, Properties}
+import org.scalacheck.Prop.forAll
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
+import org.scalacheck.Arbitrary.arbitrary
+import org.scalacheck.Gen.const
+import org.scalacheck.Gen.oneOf
 
 /**
  * Created by schaeffer on 12/28/14.
@@ -73,5 +78,20 @@ class TestTreeset extends FunSuite {
   test("member when element is not a member") {
     val tree = Tree(10, Tree(3, Empty, Empty), Tree(25, Empty, Empty))
     assert(tree.member(29) === false)
+  }
+}
+
+object TreesetSpecification extends Properties("Treeset") {
+  val genTree = for {
+    e <- arbitrary[Int]
+    left <- genTreeset
+    right <- genTreeset
+  } yield Tree(e, left, right)
+  val genEmpty = const(Empty)
+  def genTreeset: Gen[Treeset[Int]] = oneOf(genTree, genEmpty)
+  implicit val arbitraryTreeset = Arbitrary(genTreeset)
+
+  property("member") = forAll { (a: Treeset[Int], b: Int) =>
+    a.insert(b).member(b)
   }
 }
