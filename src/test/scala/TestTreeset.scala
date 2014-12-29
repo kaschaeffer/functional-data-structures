@@ -91,7 +91,15 @@ object TreesetSpecification extends Properties("Treeset") {
   def genTreeset: Gen[Treeset[Int]] = oneOf(genTree, genEmpty)
   implicit val arbitraryTreeset = Arbitrary(genTreeset)
 
-  property("member") = forAll { (a: Treeset[Int], b: Int) =>
+  property("calling member after insert returns true") = forAll { (a: Treeset[Int], b: Int) =>
     a.insert(b).member(b)
+  }
+
+  property("insert is idempotent") = forAll { (a: Treeset[Int], b: Int) =>
+    a.insert(b) == a.insert(b).insert(b)
+  }
+
+  property("insert does not decrease set size") = forAll { (a: Treeset[Int], b: Int) =>
+    TreeSharing.size(a.insert(b)) >= TreeSharing.size(a)
   }
 }
