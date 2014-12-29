@@ -61,3 +61,42 @@ sealed trait Treeset[+T] extends Set[T] {
 
 case object Empty extends Treeset[Nothing]
 case class Tree[T](elem: T, left: Treeset[T], right: Treeset[T]) extends Treeset[T]
+
+object TreeSharing {
+
+  // Generates a complete tree, consisting only of elem
+  def complete[T](elem: T, depth: Int): Treeset[T] = depth match {
+    case 1 => Tree(elem, Empty, Empty)
+    case d => {
+      val subtree = complete(elem, d - 1)
+      Tree(elem, subtree, subtree)
+    }
+  }
+
+  // Generates a maximally balanced tree of arbitrary size, consisting
+  // only of elem
+  def balanced[T](elem: T, size: Int): Treeset[T] = {
+    if (size % 2 == 1) {
+      val (subtree, _) = create2(elem, (size-1)/2)
+      Tree(elem, subtree, subtree)
+    } else {
+      val (smallSubtree, largeSubtree) = create2(elem, (size/2) - 1)
+      Tree(elem, smallSubtree, largeSubtree)
+    }
+  }
+
+  // Creates a pair of trees with sizes (size, size + 1)
+  def create2[T](elem: T, size: Int): (Treeset[T], Treeset[T]) = size match {
+    case 0 => (Empty, Tree(elem, Empty, Empty))
+    case n => {
+      val subtreeSize = (n - 1)/2
+      val (small, large) = create2(elem, subtreeSize)
+      (Tree(elem, small, small), Tree(elem, small, large))
+    }
+  }
+
+  def size[T](tree: Treeset[T]): Int = tree match {
+    case Empty => 0
+    case Tree(_, left, right) => 1 + size(left) + size(right)
+  }
+}
