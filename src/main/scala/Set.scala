@@ -19,7 +19,6 @@ sealed trait Treeset[+T] extends Set[T] {
       case Some(tree) => tree
     }
 
-  // TODO clean this up by rewriting using monads
   private def efficientInsert[S >: T](elem: S, candidateElem: Option[S])(implicit cmp: S => Ordered[S]): Option[Treeset[S]] =
     this match {
       case Empty => candidateElem match {
@@ -29,20 +28,10 @@ sealed trait Treeset[+T] extends Set[T] {
           else Some(Tree(elem, Empty, Empty))
       }
       case Tree(e, left, right) =>
-        if (elem > e) {
-          val newRight = right.efficientInsert(elem, candidateElem)
-          newRight match {
-            case None => None
-            case Some(r) => Some(Tree(e, left, r))
-          }
-        }
-        else {
-          val newLeft = left.efficientInsert(elem, Some(e))
-          newLeft match {
-            case None => None
-            case Some(l) => Some(Tree(e, l, right))
-          }
-        }
+        if (elem > e) right.efficientInsert(elem, candidateElem) map
+          {newRight => Tree(e, left, newRight)}
+        else left.efficientInsert(elem, Some(e)) map
+          {newLeft => Tree(e, newLeft, right)}
     }
 
   override def member[S >: T](elem: S)(implicit cmp: S => Ordered[S]): Boolean =
