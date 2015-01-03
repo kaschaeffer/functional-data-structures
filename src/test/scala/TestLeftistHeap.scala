@@ -16,15 +16,15 @@ class TestLeftistHeap extends FunSuite {
   }
 
   test("findMin for non-empty heap") {
-    val heap = Node(2, 4,
-      Node(10, 2, Node(12, 1, Empty, Empty), Empty),
+    val heap = Node(2, 2,
+      Node(10, 1, Node(12, 1, Empty, Empty), Empty),
       Node(8, 1, Empty, Empty))
     assert(heap.findMin === Some(2))
   }
 
   test("deleteMin for non-empty heap") {
-    val heap = Node(2, 4,
-      Node(10, 2, Node(12, 1, Empty, Empty), Empty),
+    val heap = Node(2, 2,
+      Node(10, 1, Node(12, 1, Empty, Empty), Empty),
       Node(8, 1, Empty, Empty))
 
     val heapDeleted1 = heap.deleteMin.get
