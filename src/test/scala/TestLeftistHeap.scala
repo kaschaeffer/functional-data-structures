@@ -58,6 +58,16 @@ class TestLeftistHeap extends FunSuite {
     assert(mergedHeap2.deleteMin.get.findMin.get === 2)
     assert(mergedHeap2.deleteMin.get.deleteMin.get.findMin.get === 8)
     assert(mergedHeap2.deleteMin.get.deleteMin.get.deleteMin.get.findMin.get === 9)
+  }
 
+  test("merge empty and non-empty heap") {
+    val heap = Node(2, 2,
+      Node(10, 1, Node(12, 1, Empty, Empty), Empty),
+      Node(8, 1, Empty, Empty))
+
+    val heap2 = Empty
+
+    assert(heap.merge(heap2) === heap)
+    assert(heap2.merge(heap) === heap)
   }
 }
