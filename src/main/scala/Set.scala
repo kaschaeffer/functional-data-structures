@@ -7,51 +7,51 @@ sealed trait Set[+T] {
   def member[S >: T](elem: S)(implicit cmp: S => Ordered[S]): Boolean
 }
 
-sealed trait Treeset[+T] extends Set[T] {
-  override def empty: Boolean = this match {
-    case Empty  => true
-    case _      => false
-  }
-
-  override def insert[S >: T](elem: S)(implicit cmp: S => Ordered[S]): Treeset[S] =
-    efficientInsert(elem, None) match {
-      case None       => this
-      case Some(tree) => tree
+object Treeset {
+  sealed trait Treeset[+T] extends Set[T] {
+    override def empty: Boolean = this match {
+      case Empty => true
+      case _ => false
     }
 
-  private def efficientInsert[S >: T](elem: S, candidateElem: Option[S])(implicit cmp: S => Ordered[S]): Option[Treeset[S]] =
-    this match {
+    override def insert[S >: T](elem: S)(implicit cmp: S => Ordered[S]): Treeset[S] =
+      efficientInsert(elem, None) match {
+        case None => this
+        case Some(tree) => tree
+      }
+
+    private def efficientInsert[S >: T](elem: S, candidateElem: Option[S])
+      (implicit cmp: S => Ordered[S]): Option[Treeset[S]] =
+      this match {
+        case Empty => candidateElem match {
+          case None => Some(Tree(elem, Empty, Empty))
+          case Some(candidate) =>
+            if (elem == candidate) None
+            else Some(Tree(elem, Empty, Empty))
+        }
+        case Tree(e, left, right) =>
+          if (elem > e) right.efficientInsert(elem, candidateElem) map { newRight => Tree(e, left, newRight)}
+          else left.efficientInsert(elem, Some(e)) map { newLeft => Tree(e, newLeft, right)}
+      }
+
+    override def member[S >: T](elem: S)(implicit cmp: S => Ordered[S]): Boolean =
+      fastMember(elem, None)
+
+    private def fastMember[S >: T](elem: S, candidateElem: Option[S])
+      (implicit cmp: S => Ordered[S]): Boolean = this match {
       case Empty => candidateElem match {
-        case None => Some(Tree(elem, Empty, Empty))
-        case Some(candidate) =>
-          if (elem == candidate) None
-          else Some(Tree(elem, Empty, Empty))
+        case None => false
+        case Some(candidate) => elem == candidate
       }
       case Tree(e, left, right) =>
-        if (elem > e) right.efficientInsert(elem, candidateElem) map
-          {newRight => Tree(e, left, newRight)}
-        else left.efficientInsert(elem, Some(e)) map
-          {newLeft => Tree(e, newLeft, right)}
+        if (elem > e) right.fastMember(elem, candidateElem)
+        else left.fastMember(elem, Some(e))
     }
-
-  override def member[S >: T](elem: S)(implicit cmp: S => Ordered[S]): Boolean =
-    fastMember(elem, None)
-
-  private def fastMember[S >: T](elem: S, candidateElem: Option[S])(implicit cmp: S => Ordered[S]): Boolean = this match {
-    case Empty => candidateElem match {
-      case None             => false
-      case Some(candidate)  => elem == candidate
-    }
-    case Tree(e, left, right) =>
-      if (elem > e) right.fastMember(elem, candidateElem)
-      else left.fastMember(elem, Some(e))
   }
-}
 
-case object Empty extends Treeset[Nothing]
-case class Tree[T](elem: T, left: Treeset[T], right: Treeset[T]) extends Treeset[T]
+  case object Empty extends Treeset[Nothing]
+  case class Tree[T](elem: T, left: Treeset[T], right: Treeset[T]) extends Treeset[T]
 
-object TreeSharing {
 
   // Generates a complete tree, consisting only of elem
   def complete[T](elem: T, depth: Int): Treeset[T] = depth match {
@@ -89,3 +89,4 @@ object TreeSharing {
     case Tree(_, left, right) => 1 + size(left) + size(right)
   }
 }
+

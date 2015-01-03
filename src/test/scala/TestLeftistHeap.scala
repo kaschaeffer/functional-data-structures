@@ -1,29 +1,31 @@
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
-import BinaryHeap.EmptyNode
-import BinaryHeap.Node
+
+import LeftistHeap.Empty
+import LeftistHeap.Node
 
 /**
- * Created by schaeffer on 12/29/14.
+ * Created by schaeffer on 1/2/15.
  */
+
 @RunWith(classOf[JUnitRunner])
-class TestBinaryHeap extends FunSuite {
+class TestLeftistHeap extends FunSuite {
   test("findMin for empty heap") {
-    assert(EmptyNode.findMin === None)
+    assert(Empty.findMin === None)
   }
 
   test("findMin for non-empty heap") {
     val heap = Node(2, 4,
-      Node(10, 2, Node(12, 1, EmptyNode, EmptyNode), EmptyNode),
-      Node(8, 1, EmptyNode, EmptyNode))
+      Node(10, 2, Node(12, 1, Empty, Empty), Empty),
+      Node(8, 1, Empty, Empty))
     assert(heap.findMin === Some(2))
   }
 
   test("deleteMin for non-empty heap") {
     val heap = Node(2, 4,
-      Node(10, 2, Node(12, 1, EmptyNode, EmptyNode), EmptyNode),
-      Node(8, 1, EmptyNode, EmptyNode))
+      Node(10, 2, Node(12, 1, Empty, Empty), Empty),
+      Node(8, 1, Empty, Empty))
 
     val heapDeleted1 = heap.deleteMin.get
     assert(heapDeleted1.findMin === Some(8))

@@ -5,6 +5,9 @@ import org.scalatest.FunSuite
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
+import CustomStack.Cons
+import CustomStack.Nil
+
 
 
 /**

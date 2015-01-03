@@ -7,6 +7,11 @@ import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen.const
 import org.scalacheck.Gen.oneOf
 
+import Treeset.size
+import Treeset.Empty
+import Treeset.Tree
+import Treeset.Treeset
+
 /**
  * Created by schaeffer on 12/28/14.
  */
@@ -100,6 +105,6 @@ object TreesetSpecification extends Properties("Treeset") {
   }
 
   property("insert does not decrease set size") = forAll { (a: Treeset[Int], b: Int) =>
-    TreeSharing.size(a.insert(b)) >= TreeSharing.size(a)
+    size(a.insert(b)) >= size(a)
   }
 }
