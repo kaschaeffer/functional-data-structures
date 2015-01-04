@@ -3,6 +3,7 @@ import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
 
 import LeftistHeap.Empty
+import LeftistHeap.fromList
 import LeftistHeap.Node
 
 /**
@@ -69,5 +70,15 @@ class TestLeftistHeap extends FunSuite {
 
     assert(heap.merge(heap2) === heap)
     assert(heap2.merge(heap) === heap)
+  }
+
+  test("fromList for non-empty list") {
+    val elements = List(9, 100, -2, 1, 101, 102, -3, 80)
+    val heap = fromList(elements)
+
+    assert(heap.findMin.get === -3)
+    assert(heap.deleteMin.get.findMin.get === -2)
+    assert(heap.deleteMin.get.deleteMin.get.findMin.get === 1)
+    assert(heap.deleteMin.get.deleteMin.get.deleteMin.get.findMin.get === 9)
   }
 }

@@ -148,4 +148,18 @@ object LeftistHeap {
   case object Empty extends LeftistHeap[Nothing]
   case class Node[T](element: T, private val _rank: Int, left: LeftistHeap[T], right: LeftistHeap[T])
     (implicit cmp: T => Ordered[T]) extends LeftistHeap[T]
+
+  def fromList[T](elements: List[T])(implicit cmp: T => Ordered[T]): Heap[T] =
+    mergeList(elements map (x => Node(x, 1, Empty, Empty))) match {
+      case Nil => Empty
+      case x::_ => x
+  }
+
+  private def mergeList[T](heaps: List[LeftistHeap[T]])(implicit cmp: T => Ordered[T]): List[LeftistHeap[T]] =
+    heaps match {
+      case Nil => Nil
+      case x::Nil => List(x)
+      case x::y::xs => mergeList(x.merge(y)::mergeList(xs))
+  }
+
 }
