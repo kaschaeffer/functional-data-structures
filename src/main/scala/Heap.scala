@@ -103,7 +103,6 @@ object BinaryHeap {
 }
 
 object LeftistHeap {
-
   class LeftistHeap[+T](implicit cmp: T => Ordered[T]) extends Heap[T] {
     def empty: Boolean = this match {
       case Empty => false
@@ -128,8 +127,8 @@ object LeftistHeap {
     }
 
     def makeNode[S](element: S, left: LeftistHeap[S], right: LeftistHeap[S])(implicit cmp: S => Ordered[S]): LeftistHeap[S] =
-      if (left.rank < right.rank) Node(element, right.rank + 1, right, left)
-      else Node(element, left.rank + 1, left, right)
+      if (left.rank < right.rank) Node(element, makeRank(right.rank, left.rank), right, left)
+      else Node(element, makeRank(left.rank, right.rank), left, right)
 
     def insert[S >: T](element: S)(implicit cmp: S => Ordered[S]): LeftistHeap[S] =
       merge(Node(element, 1, Empty, Empty))
@@ -143,13 +142,11 @@ object LeftistHeap {
       case Empty => 0
       case Node(_, r, _, _) => r
     }
+
+    private def makeRank(leftRank: Int, rightRank: Int): Int = rightRank + 1
   }
 
-  case object Empty extends LeftistHeap[Nothing]
-  case class Node[T](element: T, private val _rank: Int, left: LeftistHeap[T], right: LeftistHeap[T])
-    (implicit cmp: T => Ordered[T]) extends LeftistHeap[T]
-
-  def fromList[T](elements: List[T])(implicit cmp: T => Ordered[T]): Heap[T] =
+  def fromList[T](elements: List[T])(implicit cmp: T => Ordered[T]): LeftistHeap[T] =
     mergeList(elements map (x => Node(x, 1, Empty, Empty))) match {
       case Nil => Empty
       case x::_ => x
@@ -162,4 +159,69 @@ object LeftistHeap {
       case x::y::xs => mergeList(x.merge(y)::mergeList(xs))
   }
 
+  case object Empty extends LeftistHeap[Nothing]
+  case class Node[T](element: T, private val _rank: Int, left: LeftistHeap[T], right: LeftistHeap[T])
+    (implicit cmp: T => Ordered[T]) extends LeftistHeap[T]
+}
+
+object WeightLeftistHeap {
+  class WeightLeftistHeap[+T](implicit cmp: T => Ordered[T]) extends Heap[T] {
+    def empty: Boolean = this match {
+      case Empty => false
+      case _ => true
+    }
+
+    def findMin: Option[T] = this match {
+      case Empty => None
+      case Node(element, _, _, _) => Some(element)
+    }
+
+    def merge[S >: T](other: WeightLeftistHeap[S])(implicit cmp: S => Ordered[S]): WeightLeftistHeap[S] = this match {
+      case Empty => other
+      case Node(element, weight, left, right) => {
+        other match {
+          case Empty => this
+          case Node(otherElement, otherWeight, otherLeft, otherRight) =>
+            if (otherElement > element) makeNode(element, left, right.merge(other))
+            else makeNode(otherElement, otherLeft, otherRight.merge(this))
+        }
+      }
+    }
+
+    def makeNode[S](element: S, left: WeightLeftistHeap[S], right: WeightLeftistHeap[S])(implicit cmp: S => Ordered[S]): WeightLeftistHeap[S] =
+      if (left.weight < right.weight) Node(element, makeWeight(right.weight, left.weight), right, left)
+      else Node(element, makeWeight(left.weight, right.weight), left, right)
+
+    def insert[S >: T](element: S)(implicit cmp: S => Ordered[S]): WeightLeftistHeap[S] =
+      merge(Node(element, 1, Empty, Empty))
+
+    def deleteMin: Option[WeightLeftistHeap[T]] = this match {
+      case Empty => None
+      case Node(element, weight, left, right) => Some(left.merge(right))
+    }
+
+    def weight: Int = this match {
+      case Empty => 0
+      case Node(_, w, _, _) => w
+    }
+
+    private def makeWeight(leftWeight: Int, rightWeight: Int): Int = leftWeight + rightWeight + 1
+  }
+
+  def fromList[T](elements: List[T])(implicit cmp: T => Ordered[T]): WeightLeftistHeap[T] =
+    mergeList(elements map (x => Node(x, 1, Empty, Empty))) match {
+      case Nil => Empty
+      case x::_ => x
+    }
+
+  private def mergeList[T](heaps: List[WeightLeftistHeap[T]])(implicit cmp: T => Ordered[T]): List[WeightLeftistHeap[T]] =
+    heaps match {
+      case Nil => Nil
+      case x::Nil => List(x)
+      case x::y::xs => mergeList(x.merge(y)::mergeList(xs))
+    }
+
+  case object Empty extends WeightLeftistHeap[Nothing]
+  case class Node[T](element: T, private val _weight: Int, left: WeightLeftistHeap[T], right: WeightLeftistHeap[T])
+    (implicit cmp: T => Ordered[T]) extends WeightLeftistHeap[T]
 }
