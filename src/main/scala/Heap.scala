@@ -182,15 +182,15 @@ object WeightLeftistHeap {
         other match {
           case Empty => this
           case Node(otherElement, otherWeight, otherLeft, otherRight) =>
-            if (otherElement > element) makeNode(element, left, right.merge(other))
-            else makeNode(otherElement, otherLeft, otherRight.merge(this))
+            if (otherElement > element)
+              if (left.weight >= right.weight + otherWeight) Node(element, weight + otherWeight, left, right.merge(other))
+              else Node(element, weight + otherWeight, right.merge(other), left)
+            else
+              if (otherLeft.weight >= otherRight.weight + weight) Node(otherElement, weight + otherWeight, otherLeft, otherRight.merge(this))
+              else Node(otherElement, weight + otherWeight, otherRight.merge(this), otherLeft)
         }
       }
     }
-
-    def makeNode[S](element: S, left: WeightLeftistHeap[S], right: WeightLeftistHeap[S])(implicit cmp: S => Ordered[S]): WeightLeftistHeap[S] =
-      if (left.weight < right.weight) Node(element, makeWeight(right.weight, left.weight), right, left)
-      else Node(element, makeWeight(left.weight, right.weight), left, right)
 
     def insert[S >: T](element: S)(implicit cmp: S => Ordered[S]): WeightLeftistHeap[S] =
       merge(Node(element, 1, Empty, Empty))
@@ -204,8 +204,6 @@ object WeightLeftistHeap {
       case Empty => 0
       case Node(_, w, _, _) => w
     }
-
-    private def makeWeight(leftWeight: Int, rightWeight: Int): Int = leftWeight + rightWeight + 1
   }
 
   def fromList[T](elements: List[T])(implicit cmp: T => Ordered[T]): WeightLeftistHeap[T] =
