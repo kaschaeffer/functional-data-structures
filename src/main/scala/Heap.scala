@@ -223,3 +223,36 @@ object WeightLeftistHeap {
   case class Node[T](element: T, private val _weight: Int, left: WeightLeftistHeap[T], right: WeightLeftistHeap[T])
     (implicit cmp: T => Ordered[T]) extends WeightLeftistHeap[T]
 }
+
+object BinomialHeap {
+  sealed trait BinomialTree[+T]
+  case class Node[T](element: T, rank: Int, children: List[BinomialTree[T]]) extends BinomialTree[T]
+
+
+  type BinomialHeap[T] = List[BinomialTree[T]]
+
+  def empty[T](heap: BinomialHeap[T]): Boolean = heap match {
+    case Nil => false
+    case _ => true
+  }
+
+  def link[T](heap1: BinomialTree[T], heap2: BinomialTree[T])(implicit cmp: T => Ordered[T]): Option[BinomialTree[T]] =
+    (heap1, heap2) match {
+      case (Node(e1, r1, children1), Node(e2, r2, children2)) =>
+        if (e1 < e2 && r1 == r2) Some(Node(e1, r1 + 1, heap2::children1))
+        else if (e1 <= e2 && r1 == r2) Some(Node(e2, r2 + 1, heap1::children2))
+        else None
+  }
+
+  def merge[T](heap1: BinomialHeap[T], heap2: BinomialHeap[T]): BinomialHeap[T] = (heap1, heap2) match {
+    case (Nil, _) => heap2
+    case (_, Nil) => heap1
+    case ((tree1@Node(e1, r1, children1))::rest1, (tree2@Node(e2, r2, children2))::rest2) =>
+      if (r1 < r2) tree1::merge(rest1, heap2)
+      else if (r2 < r1) tree2::merge(rest2, heap1)
+      else merge(merge(List(link(tree1, tree2).get), rest1), rest2)
+  }
+
+  def insert[T](heap: BinomialHeap[T], element: T)(implicit cmp: T => Ordered[T]): BinomialHeap[T] =
+    merge(heap, List(Node(element, 1, Nil)))
+}
