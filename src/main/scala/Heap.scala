@@ -255,4 +255,21 @@ object BinomialHeap {
 
   def insert[T](heap: BinomialHeap[T], element: T)(implicit cmp: T => Ordered[T]): BinomialHeap[T] =
     merge(heap, List(Node(element, 1, Nil)))
+
+  def findMin[T](heap: BinomialHeap[T]): Option[T] = heap match {
+    case Nil => None
+    case _ => Some(heap minBy { case Node(e, _, _) => e } match { case Node(e, _, _) => e })
+  }
+
+  def removeMinTree[T](heap: BinomialHeap[T])(implicit cmp: T => Ordered[T]): Option[(BinomialTree[T], BinomialHeap[T])] = heap match {
+    case Nil => None
+    case List(x) => Some(x, Nil)
+    case (x@Node(e, _, _))::xs =>
+      for {
+        (xsTree@Node(exs, _, _), xsRest) <- removeMinTree(xs)
+      } yield {
+        if (e < exs) (x, xs)
+        else (xsTree, xsRest)
+      }
+  }
 }
