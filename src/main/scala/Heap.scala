@@ -225,7 +225,7 @@ object WeightLeftistHeap {
 }
 
 object BinomialHeap {
-  sealed trait BinomialTree[+T]
+  sealed trait BinomialTree[T]
   case class Node[T](element: T, rank: Int, children: List[BinomialTree[T]]) extends BinomialTree[T]
 
 
@@ -256,10 +256,9 @@ object BinomialHeap {
   def insert[T](heap: BinomialHeap[T], element: T)(implicit cmp: T => Ordered[T]): BinomialHeap[T] =
     merge(heap, List(Node(element, 1, Nil)))
 
-  def findMin[T](heap: BinomialHeap[T]): Option[T] = heap match {
-    case Nil => None
-    case _ => Some(heap minBy { case Node(e, _, _) => e } match { case Node(e, _, _) => e })
-  }
+  def findMin[T](heap: BinomialHeap[T]): Option[T] = for {
+    (Node(element, _, _), _) <- removeMinTree(heap)
+  } yield element
 
   def removeMinTree[T](heap: BinomialHeap[T])(implicit cmp: T => Ordered[T]): Option[(BinomialTree[T], BinomialHeap[T])] = heap match {
     case Nil => None
