@@ -271,4 +271,13 @@ object BinomialHeap {
         else (xsTree, xsRest)
       }
   }
+
+  def removeMin[T](heap: BinomialHeap[T]): Option[BinomialHeap[T]] = for {
+      (Node(e, _, children), newHeap) <- removeMinTree(heap)
+    } yield {
+      children match {
+        case Nil => newHeap
+        case _ => merge(children.reverse, newHeap)
+      }
+    }
 }
