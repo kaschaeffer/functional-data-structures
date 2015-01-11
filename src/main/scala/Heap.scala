@@ -6,8 +6,9 @@ sealed trait Heap[+T] {
   def insert[S >: T](element: S)(implicit cmp: S => Ordered[S]): Heap[S]
   def findMin: Option[T]
   def deleteMin: Option[Heap[T]]
-  // TODO: merge
-  // def merge[S >: T](other: S): Heap[S]
+
+  // TODO refactor merge (issue with types!)
+  def merge[S >: T](other: Heap[S])(implicit cmp: S => Ordered[S]): Heap[S]
 }
 
 object BinaryHeap {
@@ -126,7 +127,7 @@ object LeftistHeap {
       }
     }
 
-    def makeNode[S](element: S, left: LeftistHeap[S], right: LeftistHeap[S])(implicit cmp: S => Ordered[S]): LeftistHeap[S] =
+    private def makeNode[S](element: S, left: LeftistHeap[S], right: LeftistHeap[S])(implicit cmp: S => Ordered[S]): LeftistHeap[S] =
       if (left.rank < right.rank) Node(element, makeRank(right.rank, left.rank), right, left)
       else Node(element, makeRank(left.rank, right.rank), left, right)
 
@@ -280,4 +281,29 @@ object BinomialHeap {
         case _ => merge(children.reverse, newHeap)
       }
     }
+}
+
+object ExplicitMin {
+  case class ExplicitMinHeap[+T](min: Option[T], heap: Heap[T]) extends Heap[T] {
+    def findMin: Option[T] = min
+    def deleteMin: Option[ExplicitMinHeap[T]] = min match {
+      case None => None
+      case Some(min) => for {
+          newHeap <- heap.deleteMin
+        } yield {
+        val newMin = newHeap.findMin
+        ExplicitMinHeap(newMin, newHeap)
+      }
+    }
+
+    def merge[S >: T](other: Heap[S]): ExplicitMinHeap[S] = ExplicitMinHeap(List(this.min, other.min).min, this.heap.merge(other.heap))
+
+    def insert[S >: T](element: S)(implicit cmp: S => Ordered[S]): ExplicitMinHeap[S] = {
+      val newMin = this.min match {
+        case None => element
+        case Some(minValue) => if (element < minValue) element else minValue
+      }
+      ExplicitMinHeap(Some(newMin), this.heap.insert(element))
+    }
+  }
 }
