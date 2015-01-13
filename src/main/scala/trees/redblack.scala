@@ -6,9 +6,9 @@ object RedBlackTree {
   case object Black extends Color
 
   // TODO: better understand covariance!
-  sealed trait Tree[+T]
+  sealed trait Tree[+A]
   case object Empty extends Tree[Nothing]
-  case class Node[T](color: Color, elem: T, left: Tree[T], right: Tree[T]) extends Tree[T]
+  case class Node[A](color: Color, elem: A, left: Tree[A], right: Tree[A]) extends Tree[A]
 
   //def member[T](tree: Tree[T], elem: T)(implicit cmp : T => Ordered[T]): Boolean = tree match {
   //  case Empty => false
@@ -17,7 +17,7 @@ object RedBlackTree {
   //  case Node(_, that, left, right) if elem < that => member(left, elem)
   //}
 
-  def member[T](tree: Tree[T], elem: T)(implicit cmp : T => Ordered[T]): Boolean = tree match {
+  def member[A](tree: Tree[A], elem: A)(implicit cmp : A => Ordered[A]): Boolean = tree match {
     case Empty => false
     case Node(_, that, left, right) =>
       if (elem == that) true
@@ -25,7 +25,7 @@ object RedBlackTree {
       else member(left, elem)
   }
 
-  def insert[T](tree: Tree[T], elem: T): Tree[T] = tree match {
+  def insert[A](tree: Tree[A], elem: A): Tree[A] = tree match {
     case Empty => Node(Black, elem, Empty, Empty)
     case _ => Empty
   }
