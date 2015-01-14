@@ -124,7 +124,7 @@ object LeftistHeap {
 
     def merge[B >: A](other: Heap[B])(implicit cmp: B => Ordered[B]): LeftistHeap[B] =
       this match {
-        case Empty => Empty
+        case Empty => other
         case Node(element, rank, left, right) => other match {
             case Empty => this
             case Node(otherElement, otherRank, otherLeft, otherRight) =>
@@ -232,59 +232,60 @@ object WeightLeftistHeap {
 }
 
 object BinomialHeap {
-  sealed trait BinomialTree[A]
-  case class Node[A](element: A, rank: Int, children: List[BinomialTree[A]]) extends BinomialTree[A]
-
-
-  type BinomialHeap[A] = List[BinomialTree[A]]
-
-  def empty[A](heap: BinomialHeap[A]): Boolean = heap match {
-    case Nil => false
-    case _ => true
+  sealed trait BinomialTree[A] {
+    def link(otherTree: BinomialTree[A])(implicit cmp: A => Ordered[A]): Option[BinomialTree[A]] =
+      (this, otherTree) match {
+        case (Node(e1, r1, children1), Node(e2, r2, children2)) =>
+          if (e1 < e2 && r1 == r2) Some(Node(e1, r1 + 1, BinomialHeap(otherTree::children1.trees)))
+          else if (e1 <= e2 && r1 == r2) Some(Node(e2, r2 + 1, BinomialHeap(this::children2.trees)))
+          else None
+      }
   }
 
-  def link[A](heap1: BinomialTree[A], heap2: BinomialTree[A])(implicit cmp: A => Ordered[A]): Option[BinomialTree[A]] =
-    (heap1, heap2) match {
-      case (Node(e1, r1, children1), Node(e2, r2, children2)) =>
-        if (e1 < e2 && r1 == r2) Some(Node(e1, r1 + 1, heap2::children1))
-        else if (e1 <= e2 && r1 == r2) Some(Node(e2, r2 + 1, heap1::children2))
-        else None
-  }
+  case class Node[A](element: A, rank: Int, children: BinomialHeap[A]) extends BinomialTree[A]
 
-  def merge[A](heap1: BinomialHeap[A], heap2: BinomialHeap[A]): BinomialHeap[A] = (heap1, heap2) match {
-    case (Nil, _) => heap2
-    case (_, Nil) => heap1
-    case ((tree1@Node(e1, r1, children1))::rest1, (tree2@Node(e2, r2, children2))::rest2) =>
-      if (r1 < r2) tree1::merge(rest1, heap2)
-      else if (r2 < r1) tree2::merge(rest2, heap1)
-      else merge(merge(List(link(tree1, tree2).get), rest1), rest2)
-  }
 
-  def insert[A](heap: BinomialHeap[A], element: A)(implicit cmp: A => Ordered[A]): BinomialHeap[A] =
-    merge(heap, List(Node(element, 1, Nil)))
+  case class BinomialHeap[+A](trees: List[BinomialTree[A]]) extends Heap[A] {
+    def empty: Boolean = this match {
+      case BinomialHeap(Nil) => false
+      case _ => true
+    }
 
-  def findMin[A](heap: BinomialHeap[A]): Option[A] = for {
-    (Node(element, _, _), _) <- removeMinTree(heap)
+    def merge[B >: A](otherHeap: Heap[B])(implicit cmp: B => Ordered[B]): BinomialHeap[B] = (this.trees, otherHeap.trees) match {
+      case (Nil, BinomialHeap(trees)) => BinomialHeap(trees)
+      case (_, Nil) => this
+      case ((tree1@Node(e1, r1, children1))::rest1, (tree2@Node(e2, r2, children2))::rest2) =>
+        if (r1 < r2) BinomialHeap(tree1::BinomialHeap(rest1).merge(otherHeap).trees)
+        else if (r2 < r1) BinomialHeap(tree2::BinomialHeap(rest2).merge(this).trees)
+        else BinomialHeap(List(tree1.link(tree2).get))
+          .merge(BinomialHeap(rest1))
+          .merge(BinomialHeap(rest2))
+    }
+
+    def insert[B >: A](element: B)(implicit cmp: B => Ordered[B]): BinomialHeap[B] =
+      this.merge(BinomialHeap(List(Node(element, 1, BinomialHeap(Nil)))))
+
+  def findMin: Option[A] = for {
+    (Node(element, _, _), _) <- this.removeMinTree
   } yield element
 
-  def removeMinTree[A](heap: BinomialHeap[A])(implicit cmp: A => Ordered[A]): Option[(BinomialTree[A], BinomialHeap[A])] = heap match {
+  def removeMinTree(implicit cmp: A => Ordered[A]): Option[(BinomialTree[A], BinomialHeap[A])] = this.trees match {
     case Nil => None
-    case List(x) => Some(x, Nil)
-    case (x@Node(e, _, _))::xs =>
-      for {
-        (xsTree@Node(exs, _, _), xsRest) <- removeMinTree(xs)
+    case List(x) => Some(x, BinomialHeap(Nil))
+    case (x@Node(e, _, _))::xs => for {
+        (xsTree@Node(exs, _, _), xsRest) <- BinomialHeap(xs).removeMinTree
       } yield {
-        if (e < exs) (x, xs)
+        if (e < exs) (x, BinomialHeap(xs))
         else (xsTree, xsRest)
       }
   }
 
-  def removeMin[A](heap: BinomialHeap[A]): Option[BinomialHeap[A]] = for {
-      (Node(e, _, children), newHeap) <- removeMinTree(heap)
+  def removeMin: Option[BinomialHeap[A]] = for {
+      (Node(e, _, children), newHeap) <- this.removeMinTree
     } yield {
-      children match {
+      children.trees match {
         case Nil => newHeap
-        case _ => merge(children.reverse, newHeap)
+        case _ => BinomialHeap(children.trees.reverse).merge(newHeap)
       }
     }
 }
