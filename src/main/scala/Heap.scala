@@ -16,7 +16,7 @@ object BinaryHeap {
       case _ => false
     }
 
-    def insert[B >: A](element: B)(implicit cmp: B => Ordered[B]): Heap[B] = this match {
+    def insert[B >: A](element: B)(implicit cmp: B => Ordered[B]): BinaryHeap[B] = this match {
       case EmptyNode => Node(element, 1, EmptyNode, EmptyNode)
       case Node(e, size, left, right) =>
         if (left.size < right.size) {
@@ -92,10 +92,13 @@ object BinaryHeap {
         else Some(this)
     }
 
-    def merge[B >: A](other: Heap[B])(implicit cmp: B => Ordered[B]): Heap[B] = other match {
+    def merge[B >: A](other: Heap[B])(implicit cmp: B => Ordered[B]): BinaryHeap[B] = other match {
       case EmptyNode => this
       case Node(e, _, _, _) => other.deleteMin match {
-        case None => throw AssertionError /*
+        case None => {
+          // TODO best way to indicate failure here?
+          return this
+        } /*
           Note: this should never be executed since deleteMin cannot fail
           when the heap is NonEmpty */
         case Some(newOther) => this.insert(e).merge(newOther)
@@ -122,17 +125,29 @@ object LeftistHeap {
       case Node(element, _, _, _) => Some(element)
     }
 
+//    def merge[B >: A](other: Heap[B])(implicit cmp: B => Ordered[B]): LeftistHeap[B] =
+//      this match {
+//        case Empty => other
+//        case Node(element, rank, left, right) => other match {
+//            case Empty => this
+//            case Node(otherElement, otherRank, otherLeft, otherRight) =>
+//              if (otherElement > element) makeNode(element, left, right.merge(other))
+//              else makeNode(otherElement, otherLeft, otherRight.merge(this))
+//          }
+//        case _ => throw IllegalArgumentException
+//    }
+
     def merge[B >: A](other: Heap[B])(implicit cmp: B => Ordered[B]): LeftistHeap[B] =
-      this match {
-        case Empty => other
-        case Node(element, rank, left, right) => other match {
-            case Empty => this
-            case Node(otherElement, otherRank, otherLeft, otherRight) =>
-              if (otherElement > element) makeNode(element, left, right.merge(other))
-              else makeNode(otherElement, otherLeft, otherRight.merge(this))
-          }
-        case _ => throw IllegalArgumentException
-    }
+      other match {
+        case Empty => this
+        case typedOther@Node(otherElement, otherRank, otherLeft, otherRight) => this match {
+          case Empty => typedOther
+          case Node(element, rank, left, right) =>
+            if (otherElement > element) makeNode(element, left, right.merge(other))
+            else makeNode(otherElement, otherLeft, otherRight.merge(this))
+        }
+  //      case _ => throw IllegalArgumentException
+      }
 
     private def makeNode[B](element: B, left: LeftistHeap[B], right: LeftistHeap[B])(implicit cmp: B => Ordered[B]): LeftistHeap[B] =
       if (left.rank < right.rank) Node(element, makeRank(right.rank, left.rank), right, left)
@@ -196,7 +211,7 @@ object WeightLeftistHeap {
               if (otherLeft.weight >= otherRight.weight + weight) Node(otherElement, weight + otherWeight, otherLeft, otherRight.merge(this))
               else Node(otherElement, weight + otherWeight, otherRight.merge(this), otherLeft)
         }
-      case _ => throw IllegalArgumentException
+      case _ => return this // TODO actually indicate failure
     }
 
     def insert[B >: A](element: B)(implicit cmp: B => Ordered[B]): WeightLeftistHeap[B] =
@@ -232,55 +247,69 @@ object WeightLeftistHeap {
 }
 
 object BinomialHeap {
-  sealed trait BinomialTree[A] {
-    def link(otherTree: BinomialTree[A])(implicit cmp: A => Ordered[A]): Option[BinomialTree[A]] =
+
+  sealed class BinomialTree[+A] {
+    def link[B >: A](otherTree: BinomialTree[B])(implicit cmp: B => Ordered[B]): Option[BinomialTree[B]] =
       (this, otherTree) match {
         case (Node(e1, r1, children1), Node(e2, r2, children2)) =>
-          if (e1 < e2 && r1 == r2) Some(Node(e1, r1 + 1, BinomialHeap(otherTree::children1.trees)))
-          else if (e1 <= e2 && r1 == r2) Some(Node(e2, r2 + 1, BinomialHeap(this::children2.trees)))
+          if (e1 < e2 && r1 == r2) Some(Node(e1, r1 + 1, BinomialHeap(otherTree :: children1.trees)))
+          else if (e1 <= e2 && r1 == r2) Some(Node(e2, r2 + 1, BinomialHeap(this :: children2.trees)))
           else None
       }
   }
 
-  case class Node[A](element: A, rank: Int, children: BinomialHeap[A]) extends BinomialTree[A]
+  case class Node[+A](element: A, rank: Integer, children: BinomialHeap[A]) extends BinomialTree[A]
 
 
-  case class BinomialHeap[+A](trees: List[BinomialTree[A]]) extends Heap[A] {
+  case class BinomialHeap[+A](trees: List[BinomialTree[A]])(implicit cmp: A => Ordered[A]) extends Heap[A] {
     def empty: Boolean = this match {
       case BinomialHeap(Nil) => false
       case _ => true
     }
 
-    def merge[B >: A](otherHeap: Heap[B])(implicit cmp: B => Ordered[B]): BinomialHeap[B] = (this.trees, otherHeap.trees) match {
-      case (Nil, BinomialHeap(trees)) => BinomialHeap(trees)
-      case (_, Nil) => this
-      case ((tree1@Node(e1, r1, children1))::rest1, (tree2@Node(e2, r2, children2))::rest2) =>
-        if (r1 < r2) BinomialHeap(tree1::BinomialHeap(rest1).merge(otherHeap).trees)
-        else if (r2 < r1) BinomialHeap(tree2::BinomialHeap(rest2).merge(this).trees)
+    def merge[B >: A](otherHeap: Heap[B])(implicit cmp: B => Ordered[B]): BinomialHeap[B] = (this, otherHeap) match {
+      case (BinomialHeap(Nil), BinomialHeap(trees)) => BinomialHeap(trees)
+      case (_, BinomialHeap(Nil)) => this
+      case (BinomialHeap((tree1@Node(e1, r1, children1))::rest1), BinomialHeap((tree2@Node(e2, r2, children2))::rest2)) =>
+        if (r2 > r1) BinomialHeap(List(tree1))
+        else if (r2 < r1) BinomialHeap(List(tree2))
         else BinomialHeap(List(tree1.link(tree2).get))
           .merge(BinomialHeap(rest1))
           .merge(BinomialHeap(rest2))
+      case _ => this // TODO indicate failure properly
     }
+
+//    def merge[B >: A](otherHeap: Heap[B])(implicit cmp: B => Ordered[B]): BinomialHeap[B] = (this, otherHeap) match {
+//      case (BinomialHeap(Nil), BinomialHeap(trees)) => BinomialHeap(trees)
+//      case (_, BinomialHeap(Nil)) => this
+//      case (BinomialHeap((tree1@Node(e1, r1, children1))::rest1), BinomialHeap((tree2@Node(e2, r2, children2))::rest2)) =>
+////        if (r2 > r1) BinomialHeap(tree1::(BinomialHeap(rest1).merge(otherHeap).trees))
+////        else if (r2 < r1) BinomialHeap(tree2::(BinomialHeap(rest2).merge(this).trees))
+////        else BinomialHeap(List(tree1.link(tree2).get))
+////          .merge(BinomialHeap(rest1))
+////          .merge(BinomialHeap(rest2))
+////      case _ => this // TODO indicate failure properly
+////    }
 
     def insert[B >: A](element: B)(implicit cmp: B => Ordered[B]): BinomialHeap[B] =
       this.merge(BinomialHeap(List(Node(element, 1, BinomialHeap(Nil)))))
 
-  def findMin: Option[A] = for {
-    (Node(element, _, _), _) <- this.removeMinTree
-  } yield element
+    def findMin: Option[A] = for {
+      (Node(element, _, _), _) <- this.removeMinTree
+    } yield element
 
-  def removeMinTree(implicit cmp: A => Ordered[A]): Option[(BinomialTree[A], BinomialHeap[A])] = this.trees match {
-    case Nil => None
-    case List(x) => Some(x, BinomialHeap(Nil))
-    case (x@Node(e, _, _))::xs => for {
+    def removeMinTree: Option[(BinomialTree[A], BinomialHeap[A])] = this.trees match {
+      case Nil => None
+      case List(x) => Some(x, BinomialHeap(Nil))
+      case (x@Node(e, _, _)) :: xs => for {
         (xsTree@Node(exs, _, _), xsRest) <- BinomialHeap(xs).removeMinTree
       } yield {
         if (e < exs) (x, BinomialHeap(xs))
         else (xsTree, xsRest)
       }
-  }
+    }
 
-  def removeMin: Option[BinomialHeap[A]] = for {
+    def deleteMin: Option[BinomialHeap[A]] = for {
       (Node(e, _, children), newHeap) <- this.removeMinTree
     } yield {
       children.trees match {
@@ -288,9 +317,11 @@ object BinomialHeap {
         case _ => BinomialHeap(children.trees.reverse).merge(newHeap)
       }
     }
+  }
 }
 
 object ExplicitMin {
+
   case class ExplicitMinHeap[+A](min: Option[A], heap: Heap[A]) extends Heap[A] {
     def empty: Boolean = heap.empty
 
@@ -299,8 +330,8 @@ object ExplicitMin {
     def deleteMin: Option[ExplicitMinHeap[A]] = min match {
       case None => None
       case Some(_) => for {
-          newHeap <- heap.deleteMin
-        } yield {
+        newHeap <- heap.deleteMin
+      } yield {
         val newMin = newHeap.findMin
         ExplicitMinHeap(newMin, newHeap)
       }
