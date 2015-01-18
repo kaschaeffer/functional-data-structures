@@ -1,7 +1,7 @@
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
-import BinaryHeap.EmptyNode
+import BinaryHeap.Empty
 import BinaryHeap.Node
 
 /**
@@ -10,20 +10,20 @@ import BinaryHeap.Node
 @RunWith(classOf[JUnitRunner])
 class TestBinaryHeap extends FunSuite {
   test("findMin for empty heap") {
-    assert(EmptyNode.findMin === None)
+    assert(Empty.findMin === None)
   }
 
   test("findMin for non-empty heap") {
     val heap = Node(2, 4,
-      Node(10, 2, Node(12, 1, EmptyNode, EmptyNode), EmptyNode),
-      Node(8, 1, EmptyNode, EmptyNode))
+      Node(10, 2, Node(12, 1, Empty, Empty), Empty),
+      Node(8, 1, Empty, Empty))
     assert(heap.findMin === Some(2))
   }
 
   test("deleteMin for non-empty heap") {
     val heap = Node(2, 4,
-      Node(10, 2, Node(12, 1, EmptyNode, EmptyNode), EmptyNode),
-      Node(8, 1, EmptyNode, EmptyNode))
+      Node(10, 2, Node(12, 1, Empty, Empty), Empty),
+      Node(8, 1, Empty, Empty))
 
     val heapDeleted1 = heap.deleteMin.get
     assert(heapDeleted1.findMin === Some(8))
@@ -37,12 +37,12 @@ class TestBinaryHeap extends FunSuite {
 
   test("merging two non-empty heaps") {
     val heap = Node(2, 4,
-      Node(10, 2, Node(12, 1, EmptyNode, EmptyNode), EmptyNode),
-      Node(8, 1, EmptyNode, EmptyNode))
+      Node(10, 2, Node(12, 1, Empty, Empty), Empty),
+      Node(8, 1, Empty, Empty))
 
     val heap2 = Node(1, 3,
-      Node(9, 1, EmptyNode, EmptyNode),
-      Node(11, 1, EmptyNode, EmptyNode))
+      Node(9, 1, Empty, Empty),
+      Node(11, 1, Empty, Empty))
 
     val mergedHeap = heap.merge(heap2)
     val mergedHeap2 = heap2.merge(heap)
@@ -72,10 +72,10 @@ class TestBinaryHeap extends FunSuite {
 
   test("merge empty and non-empty heap") {
     val heap = Node(2, 4,
-      Node(10, 2, Node(12, 1, EmptyNode, EmptyNode), EmptyNode),
-      Node(8, 1, EmptyNode, EmptyNode))
+      Node(10, 2, Node(12, 1, Empty, Empty), Empty),
+      Node(8, 1, Empty, Empty))
 
-    val heap2 = EmptyNode
+    val heap2 = Empty
 
     assert(heap.merge(heap2) === heap)
   }

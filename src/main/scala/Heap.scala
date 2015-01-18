@@ -12,12 +12,12 @@ sealed trait Heap[+A] {
 object BinaryHeap {
   class BinaryHeap[+A](implicit baseCmp: A => Ordered[A]) extends Heap[A] {
     def empty: Boolean = this match {
-      case EmptyNode => true
+      case Empty => true
       case _ => false
     }
 
     def insert[B >: A](element: B)(implicit cmp: B => Ordered[B]): BinaryHeap[B] = this match {
-      case EmptyNode => Node(element, 1, EmptyNode, EmptyNode)
+      case Empty => Node(element, 1, Empty, Empty)
       case Node(e, size, left, right) =>
         if (left.size > right.size) {
           val Node(newElement, rightSize, rightLeft, rightRight) = right.insert(element)
@@ -33,30 +33,30 @@ object BinaryHeap {
     }
 
     def findMin: Option[A] = this match {
-      case EmptyNode => None
+      case Empty => None
       case Node(element, _, _, _) => Some(element)
     }
 
     private def size: Int = this match {
-      case EmptyNode => 0
+      case Empty => 0
       case Node(e, size, left, right) => size
     }
 
     def deleteMin: Option[BinaryHeap[A]] = this match {
-      case EmptyNode => None
+      case Empty => None
       case Node(element, size, left, right) =>
         val (newElement, newHeap) = this.swap.get
         newHeap match {
-          case EmptyNode => Some(EmptyNode)
+          case Empty => Some(Empty)
           case Node(oldRoot, newSize, newLeft, newRight) => Some(
             Node(newElement, newSize, newLeft, newRight).sink.get)
         }
     }
 
     private def swap: Option[(A, BinaryHeap[A])] = this match {
-      case EmptyNode => None
+      case Empty => None
       //TODO above should be unreachable as we're using the function (refactor to raise exception)
-      case Node(e, size, EmptyNode, EmptyNode) => Some((e, EmptyNode))
+      case Node(e, size, Empty, Empty) => Some((e, Empty))
       case Node(e, size, left, right) =>
         if (left.size > right.size) {
           val (newE, newLeft) = left.swap.get
@@ -69,15 +69,15 @@ object BinaryHeap {
     }
 
     def sink: Option[BinaryHeap[A]] = this match {
-      case EmptyNode => None
-      case Node(e, size, EmptyNode, EmptyNode) => Some(this)
-      case Node(e, size, left, EmptyNode) =>
+      case Empty => None
+      case Node(e, size, Empty, Empty) => Some(this)
+      case Node(e, size, left, Empty) =>
         val Node(leftE, leftSize, leftLeft, leftRight) = left
-        if (leftE < e) Some(Node(leftE, size, Node(e, leftSize, leftLeft, leftRight), EmptyNode))
+        if (leftE < e) Some(Node(leftE, size, Node(e, leftSize, leftLeft, leftRight), Empty))
         else Some(this)
-      case Node(e, size, EmptyNode, right@Node(rightE, rightSize, rightLeft, rightRight)) =>
+      case Node(e, size, Empty, right@Node(rightE, rightSize, rightLeft, rightRight)) =>
         if (e > rightE) Some(
-          Node(rightE, size, EmptyNode, Node(e, rightSize, rightLeft, rightRight)))
+          Node(rightE, size, Empty, Node(e, rightSize, rightLeft, rightRight)))
         else Some(this)
       case Node(e, size, left@Node(leftE, leftSize, leftLeft, leftRight),
       right@Node(rightE, rightSize, rightLeft, rightRight)) =>
@@ -93,25 +93,19 @@ object BinaryHeap {
     }
 
     def merge[B >: A](other: Heap[B])(implicit cmp: B => Ordered[B]): BinaryHeap[B] = other match {
-      case EmptyNode => {
-        this
-      }
+      case Empty => this
       case Node(e, _, _, _) => other.deleteMin match {
-        case None => {
-          // TODO best way to indicate failure here?
-          this
-        } /*
+        case None => this // TODO best way to indicate failure here?
+          /*
           Note: this should never be executed since deleteMin cannot fail
           when the heap is NonEmpty */
-        case Some(newOther) => {
-          this.insert(e).merge(newOther)
-        }
+        case Some(newOther) => this.insert(e).merge(newOther)
       }
     }
   }
 
 
-  case object EmptyNode extends BinaryHeap[Nothing]
+  case object Empty extends BinaryHeap[Nothing]
   case class Node[A](element: A, size: Int, left: BinaryHeap[A], right: BinaryHeap[A])
     (implicit cmp: A => Ordered[A]) extends BinaryHeap[A]
 
@@ -128,18 +122,6 @@ object LeftistHeap {
       case Empty => None
       case Node(element, _, _, _) => Some(element)
     }
-
-//    def merge[B >: A](other: Heap[B])(implicit cmp: B => Ordered[B]): LeftistHeap[B] =
-//      this match {
-//        case Empty => other
-//        case Node(element, rank, left, right) => other match {
-//            case Empty => this
-//            case Node(otherElement, otherRank, otherLeft, otherRight) =>
-//              if (otherElement > element) makeNode(element, left, right.merge(other))
-//              else makeNode(otherElement, otherLeft, otherRight.merge(this))
-//          }
-//        case _ => throw IllegalArgumentException
-//    }
 
     def merge[B >: A](other: Heap[B])(implicit cmp: B => Ordered[B]): LeftistHeap[B] =
       other match {
