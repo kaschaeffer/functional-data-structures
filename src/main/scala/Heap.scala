@@ -1,7 +1,7 @@
 /**
  * Created by schaeffer on 12/29/14.
  */
-sealed trait Heap[+A] {
+trait Heap[+A] {
   def empty: Boolean
   def insert[B >: A](element: B)(implicit cmp: B => Ordered[B]): Heap[B]
   def findMin: Option[A]
@@ -109,6 +109,20 @@ object BinaryHeap {
   case class Node[A](element: A, size: Int, left: BinaryHeap[A], right: BinaryHeap[A])
     (implicit cmp: A => Ordered[A]) extends BinaryHeap[A]
 
+  private def singleton[A](element: A)(implicit cmp: A => Ordered[A]): BinaryHeap[A] = Node(element, 1, Empty, Empty)
+
+  private def fromHeaps[A](list: List[BinaryHeap[A]])(implicit cmp: A => Ordered[A]): BinaryHeap[A] = list match {
+    case List(fullyMergedList) => fullyMergedList
+    case _ => {
+      val partiallyMergedList: List[BinaryHeap[A]] = list
+        .grouped(2)
+        .map { case List(a, b) => a.merge(b) }
+        .toList
+      fromHeaps(partiallyMergedList)
+    }
+  }
+
+  def fromList[A](list: List[A])(implicit cmp: A => Ordered[A]): BinaryHeap[A] = fromHeaps(list.map(singleton(_)(cmp)))
 }
 
 object LeftistHeap {
