@@ -9,7 +9,26 @@ trait Heap[+A] {
   def merge[B >: A](other: Heap[B])(implicit cmp: B => Ordered[B]): Heap[B]
 }
 
-object BinaryHeap {
+trait HeapBuilder {
+  def singletonHeap[A](element: A)(implicit cmp: A => Ordered[A]): Heap[A]
+
+  private def mergeHeaps[A](heaps: List[Heap[A]])(implicit cmp: A => Ordered[A]): Option[Heap[A]] = heaps match {
+    case Nil => None
+    case List(fullyMergedList) => Some(fullyMergedList)
+    case _ => {
+      val partiallyMergedList: List[Heap[A]] = heaps
+        .grouped(2)
+        .map { case List(a, b) => a.merge(b) }
+        .toList
+      mergeHeaps(partiallyMergedList)
+    }
+  }
+
+  def fromList[A](list: List[A])(implicit cmp: A => Ordered[A]): Option[Heap[A]] =
+    mergeHeaps(list.map(singletonHeap(_)(cmp)))
+}
+
+object BinaryHeap extends HeapBuilder {
   class BinaryHeap[+A](implicit baseCmp: A => Ordered[A]) extends Heap[A] {
     def empty: Boolean = this match {
       case Empty => true
@@ -109,23 +128,11 @@ object BinaryHeap {
   case class Node[A](element: A, size: Int, left: BinaryHeap[A], right: BinaryHeap[A])
     (implicit cmp: A => Ordered[A]) extends BinaryHeap[A]
 
-  private def singleton[A](element: A)(implicit cmp: A => Ordered[A]): BinaryHeap[A] = Node(element, 1, Empty, Empty)
-
-  private def fromHeaps[A](list: List[BinaryHeap[A]])(implicit cmp: A => Ordered[A]): BinaryHeap[A] = list match {
-    case List(fullyMergedList) => fullyMergedList
-    case _ => {
-      val partiallyMergedList: List[BinaryHeap[A]] = list
-        .grouped(2)
-        .map { case List(a, b) => a.merge(b) }
-        .toList
-      fromHeaps(partiallyMergedList)
-    }
-  }
-
-  def fromList[A](list: List[A])(implicit cmp: A => Ordered[A]): BinaryHeap[A] = fromHeaps(list.map(singleton(_)(cmp)))
+  override def singletonHeap[A](element: A)(implicit cmp: A => Ordered[A]): BinaryHeap[A] =
+    Node(element, 1, Empty, Empty)
 }
 
-object LeftistHeap {
+object LeftistHeap extends HeapBuilder {
   class LeftistHeap[+A](implicit cmp: A => Ordered[A]) extends Heap[A] {
     def empty: Boolean = this match {
       case Empty => false
@@ -185,9 +192,12 @@ object LeftistHeap {
   case object Empty extends LeftistHeap[Nothing]
   case class Node[A](element: A, private val _rank: Int, left: LeftistHeap[A], right: LeftistHeap[A])
     (implicit cmp: A => Ordered[A]) extends LeftistHeap[A]
+
+  override def singletonHeap[A](element: A)(implicit cmp: A => Ordered[A]): LeftistHeap[A] =
+    Node(element, 1, Empty, Empty)
 }
 
-object WeightLeftistHeap {
+object WeightLeftistHeap extends HeapBuilder {
 
   class WeightLeftistHeap[+A](implicit cmp: A => Ordered[A]) extends Heap[A] {
     def empty: Boolean = this match {
